@@ -78,7 +78,7 @@ packages = ["src/luminescence"]
 [tool.hatch.build.targets.sdist]
 include = [
     "src/luminescence",
-    "tests/python",
+    "tests",
     "README.md",
     "LICENSE",
 ]
@@ -118,7 +118,7 @@ known-first-party = ["luminescence"]
 [tool.basedpyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-include = ["src", "tests/python"]
+include = ["src", "tests"]
 # The scientific stack (pandas, matplotlib, scipy) ships incomplete type
 # information; unknown-type reporting there drowns out real findings.
 reportMissingTypeStubs = false
