@@ -172,9 +172,7 @@ class TestCurve:
             ("left", [2.0, 3.0, 4.0, 0.0, 0.0]),
         ],
     )
-    def test_smoothed_alignment_shifts_the_window(
-        self, align: str, expected: list[float]
-    ) -> None:
+    def test_smoothed_alignment_shifts_the_window(self, align: str, expected: list[float]) -> None:
         curve = self._make(
             data=np.column_stack([np.arange(5.0), np.array([1.0, 2.0, 3.0, 4.0, 5.0])])
         )
@@ -183,9 +181,7 @@ class TestCurve:
         np.testing.assert_array_equal(smoothed.x, curve.x)
 
     def test_smoothed_median_ignores_the_outlier(self) -> None:
-        curve = self._make(
-            data=np.column_stack([np.arange(4.0), np.array([1.0, 100.0, 2.0, 3.0])])
-        )
+        curve = self._make(data=np.column_stack([np.arange(4.0), np.array([1.0, 100.0, 2.0, 3.0])]))
         smoothed = curve.smoothed(k=3, method="median", fill=0.0)
         np.testing.assert_array_equal(smoothed.y, [0.0, 0.0, 2.0, 3.0])
 
@@ -196,11 +192,14 @@ class TestCurve:
         np.testing.assert_array_equal(curve.smoothed().y, curve.y)  # ceil(5 / 100) == 1
 
     def test_smoothed_carter_replaces_improbable_counts(self) -> None:
-        counts = np.full(20, 100.0)
-        counts[10] = 300.0
+        counts = 100.0 + np.arange(20.0)
+        counts[12] = 113.0  # makes the neighbour mean 110.25, so rounding is observable
+        counts[10] = 400.0  # far outside the Poisson spread of the rest
         curve = self._make(data=np.column_stack([np.arange(20.0), counts]))
         smoothed = curve.smoothed(method="carter_etal_2018")
-        np.testing.assert_array_equal(smoothed.y, np.full(20, 100.0))
+        # mean of the four neighbours 108, 109, 111, 113, rounded
+        assert smoothed.y[10] == 110.0
+        np.testing.assert_array_equal(np.delete(smoothed.y, 10), np.delete(counts, 10))
 
     def test_smoothed_carter_rejects_p_acceptance_that_drops_everything(self) -> None:
         with pytest.raises(ValueError, match="rejects all counts"):
@@ -242,9 +241,10 @@ class TestCurve:
         np.testing.assert_array_equal(curve.normalised(False).y, curve.y)
 
     def test_normalised_huot_subtracts_background_then_scales(self) -> None:
-        y = np.array([10.0] * 8 + [2.0, 2.0])  # background is the median of the last 20%
+        # background is the median of the last 20%, i.e. of [2.0, 4.0] alone
+        y = np.array([10.0] * 8 + [2.0, 4.0])
         curve = self._make(data=np.column_stack([np.arange(10.0), y]))
-        np.testing.assert_array_equal(curve.normalised("huot").y, [1.0] * 8 + [0.0, 0.0])
+        np.testing.assert_allclose(curve.normalised("huot").y, [1.0] * 8 + [-1 / 7, 1 / 7])
 
     def test_normalised_intensity_divides_by_channel_width(self) -> None:
         curve = self._make(data=np.array([[2.0, 4.0], [4.0, 8.0]]))
