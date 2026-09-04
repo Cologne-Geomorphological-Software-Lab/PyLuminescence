@@ -16,9 +16,19 @@ excluded via `.gitignore`) on the maintainer's machine, plus the upstream reposi
 itself at <https://github.com/R-Lum/Luminescence> — used to consult R source when
 porting a new function and to regenerate fixtures with `tools/generate_fixtures.R`. It
 is not part of this repository and not needed to build, test, or use the package.
-Reference fixtures and snapshot data needed by the test suite are copied into
-`tests/fixtures/` and versioned here, so tests never depend on a local R
-checkout being present.
+Raw test input files derived from the R package are never committed here: they belong
+to the R package and we do not redistribute copies of them. `tools/fetch_test_fixtures.py` pulls them fresh into
+the gitignored cache `tests/fixtures_cache/`: `extdata/` from the installed CRAN
+package, `r_test_data/` from a sparse checkout of the upstream repository (those
+dev-only fixtures are not shipped in the CRAN tarball). Run it once before any test
+that needs input files:
+
+```bash
+uv run python tools/fetch_test_fixtures.py
+```
+
+It finds `Rscript` on `PATH`, via `R_HOME`, or via the R installation registered in
+the Windows registry, so R does not have to be on `PATH`.
 
 ## The porting principle
 
@@ -31,10 +41,11 @@ For every ported function:
   and known quirks must match the corresponding R function, unless a quirk is a
   genuine bug that has been discussed and explicitly documented as a deliberate
   deviation.
-* Naming follows the fixed translation scheme in
-  [`docs/r-migration.md`](docs/r-migration.md) (`analyse_SAR.CWOSL()` becomes
-  `analyse_sar_cwosl()`, `RLum.Data.Curve` becomes `Curve`, etc.). Do not invent a
-  different name for a ported function or argument.
+* Names are chosen for Python developers rather than transliterated from R
+  (`analyse_SAR.CWOSL()` becomes `analyze_sar_cwosl()`, `RLum.Data.Curve` becomes
+  `Curve`). Function boundaries stay 1:1 with R, one Python function per R function,
+  so the oracle comparison needs no mapping layer. The name for a function is fixed
+  when its batch is planned; do not invent a different one while implementing.
 * Numeric output is validated against the R implementation, not against what "looks
   right"; see *Porting workflow* below.
 
@@ -48,13 +59,8 @@ code.
 ## Contributions we accept
 
 * **Porting**
-  * Implementing an R function in Python. Check the phase table in `README.md` and
-    the existing files in [`tools/specs/`](tools/specs/) to see what's already
-    ported, specified, or in progress.
-* **Port specs**
-  * Extracting a `tools/specs/*.md` write-up from an R source file (signature,
-    behaviour, edge cases, quirks). Valuable on its own, even without an
-    implementation attached.
+  * Implementing an R function in Python. Check the phase table in `README.md` to
+    see what's already ported or in progress.
 * **Bug reports**
   * Numeric results that don't match the R oracle
   * Crashes or behaviour that silently diverges from R
@@ -63,7 +69,7 @@ code.
   * Unit tests for edge cases
 * **Documentation**
   * Docstrings
-  * `docs/r-migration.md` updates, MkDocs pages
+  * `PORTING_NOTES.md` entries
 
 At this time, we do not accept:
 
@@ -92,14 +98,14 @@ the standards in this guide: judge the code on its merits, not on how it was pro
 
 * **Numerical and behavioural choices are not the AI's to decide.** When the R source
   is ambiguous, undocumented, or contains a quirk, go read the R original directly (the
-  local `archive/` checkout or upstream) or consult `tools/specs/`. Don't let an AI
+  local `archive/` checkout or upstream) or consult `PORTING_NOTES.md`. Don't let an AI
   tool invent a "cleaner" Pythonic behaviour that
   diverges from R. Any genuine behavioural choice (not already fixed by the R source)
   needs a discussion first, per *The porting principle*.
 * **Verify against the R oracle, not by assuming it works.** Run the relevant parity
-  test (fixtures under `tests/fixtures/` or the `testthat` snapshots via
-  `tests/oracle.py`) before calling a port done. A plausible-looking number is
-  not the same as a checked one.
+  test against the values that `tools/generate_fixtures.R` computes from the installed
+  CRAN release before calling a port done. A plausible-looking number is not the same
+  as a checked one. Anything you could not verify belongs in `PORTING_NOTES.md`.
 * Every AI-generated change needs a human to actually read it before it is committed.
   Do not submit code you have not reviewed and understood yourself.
 * AI-generated code follows the same rules as any other code, see *Best practices*
@@ -128,14 +134,13 @@ When filing a bug:
    Python behaviour.
 2. Name the R function and, if known, the affected Python file and line number.
 3. Provide a minimal reproduction, ideally comparing R and Python output on the same
-   input (sample files under `tests/fixtures/` are usually available on both
+   input (sample files under `tests/fixtures_cache/` are usually available on both
    sides).
 
 When filing a port/feature request:
 
 1. Name the R function(s) to be ported and their location in the R original.
-2. Note whether a `tools/specs/` write-up already exists.
-3. Note any prerequisites (other unported functions it depends on, new dependencies).
+2. Note any prerequisites (other unported functions it depends on, new dependencies).
 
 ## Environment setup
 
@@ -153,10 +158,17 @@ When filing a port/feature request:
    uv run pytest
    ```
 
-3. (Optional, only needed to regenerate R fixtures) Install R ≥ 4.6 with the
-   `Luminescence` and `jsonlite` packages, or use a local checkout of
-   <https://github.com/R-Lum/Luminescence>, then run `tools/generate_fixtures.R` with
-   `Rscript`.
+3. (Only needed for tests that read instrument files or compare against R) Install
+   R ≥ 4.6 with the `Luminescence` and `jsonlite` packages, then fetch the inputs and
+   regenerate the reference values:
+
+   ```bash
+   uv run python tools/fetch_test_fixtures.py
+   Rscript tools/generate_fixtures.R
+   ```
+
+   R does not need to be on `PATH` for the fetch step. Tests that require these files
+   skip themselves when the cache is missing.
 
 ## Best practices
 
@@ -172,7 +184,7 @@ When filing a port/feature request:
   and the other instrument formats).
 * **Mirror R behaviour exactly, including documented quirks.** A deviation from what
   the R source does isn't a local style choice; it needs a discussion first and a
-  note in the relevant `tools/specs/` file (see *The porting principle*).
+  note in `PORTING_NOTES.md` (see *The porting principle*).
 
 ## Coding style
 
@@ -181,10 +193,10 @@ When filing a port/feature request:
   type isn't obvious from the assignment. Modern syntax only: `list[float]`,
   `X | None`, `Literal[...]`.
 * **`from __future__ import annotations`** at the top of every module.
-* **Module docstrings cite the R source and version being ported**, e.g. `"""Reader
-  for Risø BIN/BINX files (port of ``read_BIN2R``, R package v0.19)."""`, plus the
-  relevant `tools/specs/*.md` file where one exists. See `src/luminescence/io/bin.py`
-  for the pattern.
+* **Module docstrings cite the R source being ported**, e.g. `"""Reader for Risø
+  BIN/BINX files (port of ``read_BIN2R``)."""`. Function and method docstrings state
+  what the code does, not where it came from; R provenance belongs at module level and
+  in `PORTING_NOTES.md`.
 * **Google-style docstrings** (`Args:` / `Returns:` / `Raises:`) where a docstring is
   warranted at all, consistent with *Best practices*' "no unnecessary comments" above.
   Most private helpers need none.
@@ -196,23 +208,21 @@ When filing a port/feature request:
 ## Porting workflow
 
 1. Pick an unported R function from the phase table in `README.md`.
-2. Extract a port spec into `tools/specs/<name>.md`: signature, behaviour, edge cases,
-   and quirks, read directly from the R source. Use the existing files in
-   `tools/specs/` as examples of the expected level of detail.
+2. Read the R source for it directly: signature, behaviour, edge cases, quirks.
 3. Implement it in the corresponding `src/luminescence/` module (see *Code
-   organisation* below), named per `docs/r-migration.md`.
+   organisation* below).
 4. Validate against the R oracle:
-   * Reference fixtures under `tests/fixtures/` (generated by
-     `tools/generate_fixtures.R`); deterministic results must match within the
-     documented tolerances (arithmetic 1e-9, fitted parameters 1e-4).
-   * `testthat` snapshots (`tests/testthat/_snaps/`), parsed via
-     `tests/oracle.py`, as an additional cross-language check.
+   * Reference values in `tests/oracle_cache/`, computed by
+     `tools/generate_fixtures.R` from the installed CRAN release; deterministic
+     results must match within the documented tolerances (arithmetic 1e-9, fitted
+     parameters 1e-4).
    * Stochastic functions (Monte-Carlo error estimation, resampling) take an explicit
      `rng: np.random.Generator | int | None` argument and are compared statistically,
      not digit for digit.
+   * Anything the oracle could not confirm gets an entry in `PORTING_NOTES.md`.
 5. Add a parity test under `tests/`.
-6. Update the status table in `README.md` and, if a new naming pattern was introduced,
-   `docs/r-migration.md`.
+6. Update the status table in `README.md`, and `PORTING_NOTES.md` if anything
+   deviates from R or could not be verified against it.
 
 ## Contribution workflow
 

@@ -64,6 +64,7 @@ dev = [
     "pylint>=3.2",
     "detect-secrets>=1.5",
     "pip-audit>=2.7",
+    "mutmut>=3.7.0",
 ]
 docs = [
     "mkdocs-material>=9.5",
@@ -78,7 +79,7 @@ packages = ["src/luminescence"]
 [tool.hatch.build.targets.sdist]
 include = [
     "src/luminescence",
-    "tests/python",
+    "tests",
     "README.md",
     "LICENSE",
 ]
@@ -118,7 +119,7 @@ known-first-party = ["luminescence"]
 [tool.basedpyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-include = ["src", "tests/python"]
+include = ["src", "tests"]
 # The scientific stack (pandas, matplotlib, scipy) ships incomplete type
 # information; unknown-type reporting there drowns out real findings.
 reportMissingTypeStubs = false
@@ -146,3 +147,10 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
+
+[tool.pylint.typecheck]
+ignored-modules = ["scipy.special"]
+
+[tool.mutmut]
+source_paths = ["src/luminescence"]
+pytest_add_cli_args_test_selection = ["tests/"]
