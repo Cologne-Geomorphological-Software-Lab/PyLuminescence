@@ -201,6 +201,22 @@ class TestCurve:
         assert smoothed.y[10] == 110.0
         np.testing.assert_array_equal(np.delete(smoothed.y, 10), np.delete(counts, 10))
 
+    def test_smoothed_carter_fills_at_the_curve_start(self) -> None:
+        # R's frollmean(n=5, align="center") writes `fill` in the first two channels
+        counts = 100.0 + np.arange(20.0)
+        counts[1] = 400.0
+        curve = self._make(data=np.column_stack([np.arange(20.0), counts]))
+        smoothed = curve.smoothed(method="carter_etal_2018")
+        assert np.isnan(smoothed.y[1])
+        np.testing.assert_array_equal(np.delete(smoothed.y, 1), np.delete(counts, 1))
+
+    def test_smoothed_carter_honours_fill(self) -> None:
+        counts = 100.0 + np.arange(20.0)
+        counts[1] = 400.0
+        curve = self._make(data=np.column_stack([np.arange(20.0), counts]))
+        smoothed = curve.smoothed(method="carter_etal_2018", fill=0.0)
+        assert smoothed.y[1] == 0.0
+
     def test_smoothed_carter_rejects_p_acceptance_that_drops_everything(self) -> None:
         with pytest.raises(ValueError, match="rejects all counts"):
             self._make().smoothed(method="carter_etal_2018", p_acceptance=1.0)

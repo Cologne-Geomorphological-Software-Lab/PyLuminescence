@@ -36,6 +36,9 @@ def _rolling(x: np.ndarray, k: int, *, fill: float, align: str, func: str) -> np
     return rolled.fillna(fill).to_numpy()
 
 
+_CARTER_WINDOW = 5
+
+
 def _smoothing(
     x: np.ndarray,
     *,
@@ -66,8 +69,14 @@ def _smoothing(
     x = x.astype(float).copy()
     x[na_idx] = np.nan
     x_series: pd.Series = pd.Series(x)
-    rolled_series = cast("pd.Series", x_series.rolling(window=5, center=True, min_periods=1).mean())
-    rolled = rolled_series.to_numpy()
+    rolled_series = cast(
+        "pd.Series",
+        x_series.rolling(window=_CARTER_WINDOW, center=True, min_periods=1).mean(),
+    )
+    rolled = rolled_series.to_numpy(copy=True)
+    edge = (_CARTER_WINDOW - 1) // 2
+    rolled[:edge] = fill
+    rolled[-edge:] = fill
     x[na_idx] = rolled[na_idx]
     return np.round(x)
 
