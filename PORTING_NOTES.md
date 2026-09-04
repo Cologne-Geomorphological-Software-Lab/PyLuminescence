@@ -2,10 +2,12 @@
 
 This file records where the port deviates from the R package, and where it rests
 on an approximation nobody has checked against R yet. One entry per affected
-symbol. The *Unverified approximations* section is the working list for the
-live-oracle comparison: delete an entry once the oracle confirms the behaviour,
-or move it up to *Deliberate deviations* if the difference turns out to be
-intentional.
+symbol.
+
+*Unverified approximations* is the working list for the live-oracle comparison.
+Once the oracle has run, an entry there either disappears, moves to *Deliberate
+deviations* if the difference is intentional, or moves to *Confirmed divergences*
+if the port and R genuinely disagree.
 
 ## Deliberate deviations
 
@@ -21,6 +23,10 @@ intentional.
 |---|---|---|
 | `Curve.smoothed`, `_rolling` | `smooth_RLum()`, `.smoothing()` | R uses `data.table::froll*`; this port uses `pandas.Series.rolling` with `min_periods=k`. The behaviour at incomplete windows (the leading `k - 1` channels for `align="right"`, both edges for `"center"`) was approximated rather than derived from `data.table`'s implementation. Check the edge values explicitly during the live-oracle comparison. |
 
+## Confirmed divergences, not yet resolved
+
+None currently.
+
 ## Not ported yet
 
 | Python | R | Reason |
@@ -29,7 +35,16 @@ intentional.
 
 ## References
 
-- `Curve.smoothed(method="carter_etal_2018")` implements Carter et al. (2018),
-  <https://doi.org/10.1016/j.radmeas.2018.05.010>: counts whose Poisson
-  probability falls below `p_acceptance` are replaced by the mean of up to four
-  neighbours.
+- `Curve.smoothed(method="carter_etal_2018")` ports R's `"Carter_etal_2018"`
+  method. R documents it as an implementation of the Poisson smoother of Carter, J., Cresswell, A.J., Kinnaird, T.C., Carmichael, L.A., Murphy, S. and
+  Sanderson, D.C.W. (2018): Non-Poisson variations in photomultipliers and
+  implications for luminescence dating. Radiation Measurements 120, 267-273.
+  <https://doi.org/10.1016/j.radmeas.2018.05.010>
+
+  A count is flagged when its Poisson probability, taken against the mean of the whole curve, falls below `p_acceptance`; a flagged count is replaced by the mean of its four neighbours. The first and last two channels have no full
+  window, and both R and this port write `fill` in them.
+
+  The paper ships its implementation as supplementary material   (`PoissonSmoothing.R`, mmc3). R's `.smoothing()` follows that script on the
+  probability itself: the script computes a standard deviation in its lines 9-10   but never uses it, and line 17 is a plain Poisson mass function with λ set to the mean.
+  
+  Two points where R's `.smoothing()` and the published script disagree. Neither is a port bug, and the port mirrors R in both cases. Nothing has been raised with R-Lum yet.
