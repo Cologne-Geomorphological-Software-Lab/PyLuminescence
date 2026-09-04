@@ -119,11 +119,42 @@ class TestCurve:
         curve = Curve.from_matrix(np.array([[1.0, 2.0]]), originator="test_fn")
         assert curve.record_type == "unknown curve type"
 
+    def test_repr_reports_ranges_and_counts(self) -> None:
+        text = repr(self._make(info={"position": 1}))
+        assert "record_type='OSL'" in text
+        assert "measured values: 3" in text
+        assert "x range: 1.0 .. 3.0" in text
+        assert "info elements: 1" in text
+        assert "contains NaN" not in text
+
+    def test_repr_flags_nan_values(self) -> None:
+        curve = self._make(data=np.array([[1.0, np.nan], [2.0, 20.0]]))
+        assert "contains NaN values" in repr(curve)
+
+    def test_repr_handles_all_nan_y(self) -> None:
+        curve = self._make(data=np.array([[1.0, np.nan]]))
+        assert "y range: nan .. nan" in repr(curve)
+
     def test_binned_sums_channels(self) -> None:
         curve = self._make(data=np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]]))
         binned = curve.binned(bin_size=2)
         np.testing.assert_array_equal(binned.y, [3.0, 7.0])  # (1+2), (3+4)
         np.testing.assert_array_equal(binned.x, [1.0, 3.0])
+
+    def test_binned_zero_pads_trailing_partial_bin(self) -> None:
+        curve = self._make(data=np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0]]))
+        binned = curve.binned(bin_size=2)
+        np.testing.assert_array_equal(binned.y, [3.0, 3.0])  # (1+2), (3+0)
+        np.testing.assert_array_equal(binned.x, [1.0, 3.0])
+
+    def test_binned_rejects_non_positive(self) -> None:
+        with pytest.raises(ValueError, match="positive integer"):
+            self._make().binned(0)
+
+    def test_transformations_record_their_originator(self) -> None:
+        curve = self._make()
+        assert curve.binned().originator == "binned"
+        assert curve.smoothed().originator == "smoothed"
 
     def test_smoothed_mean_right_aligned(self) -> None:
         curve = self._make(
@@ -133,19 +164,101 @@ class TestCurve:
         assert smoothed.y[0] == 0.0  # incomplete window filled
         assert smoothed.y[1] == pytest.approx(1.5)
 
+    @pytest.mark.parametrize(
+        ("align", "expected"),
+        [
+            ("right", [0.0, 0.0, 2.0, 3.0, 4.0]),
+            ("center", [0.0, 2.0, 3.0, 4.0, 0.0]),
+            ("left", [2.0, 3.0, 4.0, 0.0, 0.0]),
+        ],
+    )
+    def test_smoothed_alignment_shifts_the_window(
+        self, align: str, expected: list[float]
+    ) -> None:
+        curve = self._make(
+            data=np.column_stack([np.arange(5.0), np.array([1.0, 2.0, 3.0, 4.0, 5.0])])
+        )
+        smoothed = curve.smoothed(k=3, align=align, fill=0.0)
+        np.testing.assert_array_equal(smoothed.y, expected)
+        np.testing.assert_array_equal(smoothed.x, curve.x)
+
+    def test_smoothed_median_ignores_the_outlier(self) -> None:
+        curve = self._make(
+            data=np.column_stack([np.arange(4.0), np.array([1.0, 100.0, 2.0, 3.0])])
+        )
+        smoothed = curve.smoothed(k=3, method="median", fill=0.0)
+        np.testing.assert_array_equal(smoothed.y, [0.0, 0.0, 2.0, 3.0])
+
+    def test_smoothed_default_k_is_one_percent_of_the_points(self) -> None:
+        curve = self._make(
+            data=np.column_stack([np.arange(5.0), np.array([1.0, 2.0, 3.0, 4.0, 5.0])])
+        )
+        np.testing.assert_array_equal(curve.smoothed().y, curve.y)  # ceil(5 / 100) == 1
+
+    def test_smoothed_carter_replaces_improbable_counts(self) -> None:
+        counts = np.full(20, 100.0)
+        counts[10] = 300.0
+        curve = self._make(data=np.column_stack([np.arange(20.0), counts]))
+        smoothed = curve.smoothed(method="carter_etal_2018")
+        np.testing.assert_array_equal(smoothed.y, np.full(20, 100.0))
+
+    def test_smoothed_carter_rejects_p_acceptance_that_drops_everything(self) -> None:
+        with pytest.raises(ValueError, match="rejects all counts"):
+            self._make().smoothed(method="carter_etal_2018", p_acceptance=1.0)
+
     def test_smoothed_rejects_bad_method(self) -> None:
         with pytest.raises(ValueError, match="method"):
             self._make().smoothed(method="bogus")
 
-    def test_normalised_max(self) -> None:
-        curve = self._make(data=np.array([[1.0, 2.0], [2.0, 8.0]]))
-        normalised = curve.normalised("max")
-        np.testing.assert_array_equal(normalised.y, [0.25, 1.0])
+    def test_smoothed_rejects_bad_align(self) -> None:
+        with pytest.raises(ValueError, match="align"):
+            self._make().smoothed(align="bogus")
 
-    def test_normalised_first(self) -> None:
+    def test_smoothed_rejects_non_positive_k(self) -> None:
+        with pytest.raises(ValueError, match="positive integer"):
+            self._make().smoothed(k=0)
+
+    @pytest.mark.parametrize(
+        ("norm", "expected"),
+        [
+            ("max", [0.5, 1.0]),
+            (True, [0.5, 1.0]),
+            ("min", [1.0, 2.0]),
+            ("first", [1.0, 2.0]),
+            ("last", [0.5, 1.0]),
+            (2.0, [2.0, 4.0]),
+        ],
+    )
+    def test_normalised_references(self, norm: float | str | bool, expected: list[float]) -> None:
         curve = self._make(data=np.array([[1.0, 4.0], [2.0, 8.0]]))
-        normalised = curve.normalised("first")
-        np.testing.assert_array_equal(normalised.y, [1.0, 2.0])
+        np.testing.assert_array_equal(curve.normalised(norm).y, expected)
+
+    def test_normalised_by_array_divides_channelwise(self) -> None:
+        curve = self._make(data=np.array([[1.0, 4.0], [2.0, 8.0]]))
+        np.testing.assert_array_equal(curve.normalised(np.array([2.0, 4.0])).y, [2.0, 2.0])
+
+    def test_normalised_false_leaves_the_values_alone(self) -> None:
+        curve = self._make()
+        np.testing.assert_array_equal(curve.normalised(False).y, curve.y)
+
+    def test_normalised_huot_subtracts_background_then_scales(self) -> None:
+        y = np.array([10.0] * 8 + [2.0, 2.0])  # background is the median of the last 20%
+        curve = self._make(data=np.column_stack([np.arange(10.0), y]))
+        np.testing.assert_array_equal(curve.normalised("huot").y, [1.0] * 8 + [0.0, 0.0])
+
+    def test_normalised_intensity_divides_by_channel_width(self) -> None:
+        curve = self._make(data=np.array([[2.0, 4.0], [4.0, 8.0]]))
+        np.testing.assert_array_equal(curve.normalised("intensity").y, [2.0, 4.0])
+
+    def test_normalised_warns_and_zeroes_non_finite_results(self) -> None:
+        curve = self._make(data=np.array([[1.0, 0.0], [2.0, 0.0]]))
+        with pytest.warns(UserWarning, match="Inf/NaN"):
+            normalised = curve.normalised("max")
+        np.testing.assert_array_equal(normalised.y, [0.0, 0.0])
+
+    def test_normalised_keeps_the_x_values(self) -> None:
+        curve = self._make()
+        np.testing.assert_array_equal(curve.normalised("max").x, curve.x)
 
     def test_normalised_unknown_raises(self) -> None:
         with pytest.raises(ValueError, match="Unknown 'norm'"):
