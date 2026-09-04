@@ -64,6 +64,7 @@ dev = [
     "pylint>=3.2",
     "detect-secrets>=1.5",
     "pip-audit>=2.7",
+    "mutmut>=3.7.0",
 ]
 docs = [
     "mkdocs-material>=9.5",
@@ -146,3 +147,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
+
+[tool.mutmut]
+source_paths = ["src/luminescence"]
+pytest_add_cli_args_test_selection = ["tests/"]

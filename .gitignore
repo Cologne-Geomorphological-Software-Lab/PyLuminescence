@@ -35,6 +35,8 @@ coverage.xml
 .tox/
 .nox/
 .hypothesis/
+mutants/
+.mutmut-cache
 
 # Type checkers / linters
 .mypy_cache/
