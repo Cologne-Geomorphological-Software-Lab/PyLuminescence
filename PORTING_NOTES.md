@@ -41,10 +41,15 @@ None currently.
   implications for luminescence dating. Radiation Measurements 120, 267-273.
   <https://doi.org/10.1016/j.radmeas.2018.05.010>
 
-  A count is flagged when its Poisson probability, taken against the mean of the whole curve, falls below `p_acceptance`; a flagged count is replaced by the mean of its four neighbours. The first and last two channels have no full
+  A count is flagged when its Poisson probability, taken against the mean of the  whole curve, falls below `p_acceptance`; a flagged count is replaced by the
+  mean of its four neighbours. The first and last two channels have no full
   window, and both R and this port write `fill` in them.
 
-  The paper ships its implementation as supplementary material   (`PoissonSmoothing.R`, mmc3). R's `.smoothing()` follows that script on the
-  probability itself: the script computes a standard deviation in its lines 9-10   but never uses it, and line 17 is a plain Poisson mass function with λ set to the mean.
-  
-  Two points where R's `.smoothing()` and the published script disagree. Neither is a port bug, and the port mirrors R in both cases. Nothing has been raised with R-Lum yet.
+  The paper ships its implementation as supplementary material
+  (`PoissonSmoothing.R`, mmc3). R's `.smoothing()` follows that script on the
+  probability itself: the script computes a standard deviation in its lines 9-10 but never uses it, and line 17 is a plain Poisson mass function with λ set to the mean.
+
+  `.smoothing()` and the published script disagree on the divisor of the
+  replacement value (line 78 of `PoissonSmoothing.R`) and on the multi-channel
+  exemption described in section 4.1 of the paper. Neither is a port bug; the
+  port mirrors R in both cases. To be raised with R-Lum after a closer reading of the paper.
