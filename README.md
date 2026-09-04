@@ -13,16 +13,32 @@ This repository holds a Python port of the original R Luminescence package.
 
 The port is pre-alpha and proceeds in phases:
 
-| Phase | Scope | Status |
-|---|---|---|
-| 0 | Scaffolding, tooling, CI | tooling done, lookup tables outstanding |
-| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | in progress |
-| 2 | Remaining instrument readers (XSYG, SPE, PSL, Daybreak, TIFF, RF, Helios), writers | open |
-| 3 | Equivalent-dose / age models, dosimetry, DRAC client | open |
-| 4 | Remaining fitting routines and analysis protocols | open |
-| 5 | Plotting layer (matplotlib) | open |
-| 6 | Bayesian analyses (PyMC, optional extra) | open |
-| 7 | Documentation and PyPI release | open |
+| Phase | Scope | Status | Parity |
+|---|---|---|---|
+| 0 | Scaffolding, tooling, CI; lookup tables still to export | in progress | n/a |
+| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | in progress | open |
+| | `Record`, `Curve` | done | partial |
+| | `Analysis`, `Results` | open | open |
+| | `RisoeBinFile` container | open | open |
+| | `read_bin` (BIN/BINX v3-v8) | open | open |
+| | `lxtx_ratio` | open | open |
+| | `summary_statistics` | open | open |
+| | `fit_dose_response` (LIN/SSE/GOK) | open | open |
+| | `analyze_sar_cwosl`, `extract_irradiation_times` | open | open |
+| | Live R-oracle harness | open | n/a |
+| 2 | Remaining instrument readers (XSYG, SPE, PSL, Daybreak, TIFF, RF, Helios), writers | open | open |
+| 3 | Equivalent-dose / age models, dosimetry, DRAC client | open | open |
+| 4 | Remaining fitting routines and analysis protocols | open | open |
+| 5 | Plotting layer (matplotlib) | open | n/a |
+| 6 | Bayesian analyses (PyMC, optional extra) | open | open |
+| 7 | Documentation and PyPI release | open | n/a |
+
+*Parity* tracks whether a unit has been checked against the installed CRAN
+release, which is a separate question from whether it is ported. `Record` and
+`Curve` are `partial`: only the Carter branch of the smoother has been measured
+against `Luminescence` 1.3.0. What is still unchecked is listed in
+[`PORTING_NOTES.md`](PORTING_NOTES.md). Phase 5 is exempt because the plotting
+layer is an idiomatic redesign rather than a faithful port.
 
 Everything being written in this repository (no code carried over from the
 prior fork-based port) is validated live against the currently installed CRAN release of `Luminescence`. See *Numerical validation* below.
