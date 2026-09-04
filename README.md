@@ -7,7 +7,7 @@ analysis.
 [![Python ≥ 3.12](https://img.shields.io/badge/python-%E2%89%A5%203.12-blue)](pyproject.toml)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 
-This repository holds a Python port of the original R Luminescence package. 
+This repository holds a Python port of the original R Luminescence package.
 
 ## Status
 
@@ -15,8 +15,8 @@ The port is pre-alpha and proceeds in phases:
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Scaffolding, tooling, CI | done |
-| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | next |
+| 0 | Scaffolding, tooling, CI | tooling done, lookup tables outstanding |
+| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | in progress |
 | 2 | Remaining instrument readers (XSYG, SPE, PSL, Daybreak, TIFF, RF, Helios), writers | open |
 | 3 | Equivalent-dose / age models, dosimetry, DRAC client | open |
 | 4 | Remaining fitting routines and analysis protocols | open |
@@ -24,7 +24,7 @@ The port is pre-alpha and proceeds in phases:
 | 6 | Bayesian analyses (PyMC, optional extra) | open |
 | 7 | Documentation and PyPI release | open |
 
-Everything being written in this repository (no code carried over from the 
+Everything being written in this repository (no code carried over from the
 prior fork-based port) is validated live against the currently installed CRAN release of `Luminescence`. See *Numerical validation* below.
 
 ## Installation
@@ -49,9 +49,9 @@ data = lum.read_bin("measurement.binx")
 aliquot = data.to_analysis(pos=1)
 
 # SAR CW-OSL analysis: LxTx table, rejection criteria, De
-results = lum.analyse_sar_cwosl(
+results = lum.analyze_sar_cwosl(
     aliquot,
-    signal_integral=range(1, 3),        # channels, 1-based inclusive (as in R)
+    signal_integral=range(1, 3),  # channels, 1-based inclusive (as in R)
     background_integral=range(900, 1001),
 )
 print(results["data"][["De", "De.Error", "D01", "RC.Status"]])
@@ -61,16 +61,21 @@ print(results["data"][["De", "De.Error", "D01", "RC.Status"]])
 
 Every ported function is verified live against the currently installed CRAN release of `Luminescence`:
 
-- Raw example instrument files (BIN/BINX, XSYG, ...) live in
-  [`tests/fixtures/`](tests/fixtures/) as generic, versioned test data.
-- [`tools/generate_fixtures.R`](tools/generate_fixtures.R) calls the installed
+- Raw example instrument files (BIN/BINX, XSYG, ...) are never committed here: they
+  belong to the R package and we do not redistribute copies of them.
+  [`tools/fetch_test_fixtures.py`](tools/fetch_test_fixtures.py) pulls them fresh
+  into the gitignored cache `tests/fixtures_cache/`, from the installed CRAN
+  package and from a sparse checkout of the R repository. Run it once before any
+  test that needs input files.
+- `tools/generate_fixtures.R` (not written yet) calls the installed
   `Luminescence` package fresh and writes reference values to
   `tests/oracle_cache/` (gitignored, regenerated on demand — see
   [CONTRIBUTING.md](CONTRIBUTING.md)). Deterministic results must match within
   documented tolerances (arithmetic 1e-9, fitted parameters 1e-4).
 - Monte-Carlo error estimates are compared statistically. All stochastic functions take an explicit `rng` argument; there is no global seeding.
 
-Porting specifications extracted from the R sources live in [`tools/specs/`](tools/specs/).
+[`PORTING_NOTES.md`](PORTING_NOTES.md) lists where the port deviates from R and
+where it rests on an approximation nobody has checked against R yet.
 
 ## Development
 
