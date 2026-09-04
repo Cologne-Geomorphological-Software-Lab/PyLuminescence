@@ -15,9 +15,9 @@ The port is pre-alpha and proceeds in phases:
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Scaffolding, tooling, CI, physical lookup tables | open |
-| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | open |
-| 2 | Remaining instrument readers (XSYG, SPE, PSL, Daybreak, TIFF, RF, Helios), writers | next |
+| 0 | Scaffolding, tooling, CI | done |
+| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | next |
+| 2 | Remaining instrument readers (XSYG, SPE, PSL, Daybreak, TIFF, RF, Helios), writers | open |
 | 3 | Equivalent-dose / age models, dosimetry, DRAC client | open |
 | 4 | Remaining fitting routines and analysis protocols | open |
 | 5 | Plotting layer (matplotlib) | open |
