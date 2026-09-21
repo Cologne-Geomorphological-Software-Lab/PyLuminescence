@@ -16,6 +16,8 @@ if the port and R genuinely disagree.
 | `Curve.__len__` | `length_RLum()`, `length()` | R returns `max(x)`, the stimulation duration. Python's `__len__` must return a non-negative integer, so it returns the number of data points. The R value is available as `Curve.duration`. |
 | `Record.replicate` | `replicate_RLum()` | Returns the same object `times` times rather than copies, mirroring R's `lapply(1:times, function(x) object)`. Mutating one element mutates them all. |
 | `Curve.__eq__` | n/a | Compares `record_type`, `curve_type`, `info` and `data`. `originator`, `uid` and `pids` are excluded, so two curves from different sources compare equal on payload. R has no `==` for these classes. |
+| `Result.__eq__` | n/a | Compares identity: two results are equal only if they are the same object. `data` can hold arrays and data frames, whose `==` is element-wise, so a payload comparison has no single meaning. Without an override, `Result` would inherit `Record.__eq__`, which compares only `originator` and `info` and treats results with different `data` as equal. R has no `==` for `RLum.Results`. |
+| none | `view()` for `RLum.Results` (`RLum.Results-class.R:269-285`) | Not ported, by design. It opens the element in R's spreadsheet viewer (`utils::View()`), a GUI function with no counterpart in a library. Take the element with `Result.get()` and inspect it in the IDE's variable viewer or as a data frame. |
 
 ## Unverified approximations
 
