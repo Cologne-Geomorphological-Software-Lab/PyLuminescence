@@ -12,12 +12,9 @@ PORTING_NOTES.md records where individual symbols deviate from R. It does not co
 ## Decision
 
 * Architectural decisions are recorded as ADRs in docs/adr/, one file per decision, using the template.md format.
-decision, in the format of template.md.
 * A decision counts as architectural when it constrains more than one module or is expensive to reverse.
-or is expensive to reverse.
 * Per-symbol differences from R stay in PORTING_NOTES.md.
 * An accepted record is not edited. A changed decision gets a new record that supersedes the old one.
-supersedes the old one.
 
 ## Consequences
 

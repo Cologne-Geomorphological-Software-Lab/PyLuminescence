@@ -18,17 +18,12 @@ Options 1 and 2 convert a pure-Python package into a compiled one by providing w
 ## Decision
 
 * Numerical kernels live in luminescence/_kernels/ as pure functions.
-* They are the default in NumPy/SciPy.
+* They are implemented in NumPy/SciPy by default
 * Numba (optional extra speed) is used only for inherently sequential algorithms where a benchmark shows NumPy is too slow. 
 * C/C++ is used only if a shared library alongside R-Lum is required.
 
 ## Consequences
 
 * The package is made up entirely of Python; it does not require a compiler to be installed.
-* Parity of the kernels is checked via the R oracle, not guaranteed by
-shared code.
-* Replacing _kernels/ with bindings to a shared library later is a local
-change; callers are unaffected.
-* Existing kernels outside _kernels/, currently _rolling and
-The smoothing features in core/curve.py have been moved there.
-
+* Parity of the kernels is checked via the R oracle, not guaranteed by shared code.
+* Replacing _kernels/ with bindings to a shared library later is a local change; callers are unaffected.
