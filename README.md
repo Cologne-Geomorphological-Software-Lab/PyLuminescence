@@ -1,4 +1,4 @@
-# Luminescence (Python)
+# Luminescence <img src="docs/logo/luminescence-python-logo.svg" align="right" height="139" alt="Luminescence for Python logo" />
 
 A Python port of the R package
 [`Luminescence`](https://github.com/R-Lum/Luminescence) for luminescence dating data
