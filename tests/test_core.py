@@ -284,4 +284,4 @@ class TestCurve:
         curve = self._make()
         melted = curve.melt()
         assert list(melted.columns) == ["x", "y", "type", "uid"]
-        assert (melted["type"] == "OSL").all()
+        assert set(melted["type"]) == {"OSL"}
