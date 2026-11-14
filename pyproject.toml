@@ -12,6 +12,8 @@ license = "GPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [
     { name = "Dennis Handy", email = "dhandy1@uni-koeln.de" },
+    { name = "Sebastian Kreutzer" },
+    { name = "Marco Colombo" },
 ]
 keywords = [
     "luminescence-dating",
