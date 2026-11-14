@@ -13,8 +13,8 @@ The port is pre-alpha and proceeds in phases:
 
 | Phase | Scope | Status | Parity |
 |---|---|---|---|
-| 0 | Scaffolding, tooling, CI | in progress | n/a |
-| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | in progress | open |
+| 0 | Scaffolding, tooling, CI | done | n/a |
+| 1 | Core object model, BIN/BINX reader, SAR CW-OSL analysis chain | in progress | partial |
 | 2 | Remaining instrument readers (XSYG, SPE, PSL, Daybreak, TIFF, RF, Helios), writers | open | open |
 | 3 | Equivalent-dose / age models, dosimetry, DRAC client | open | open |
 | 4 | Remaining fitting routines and analysis protocols | open | open |
