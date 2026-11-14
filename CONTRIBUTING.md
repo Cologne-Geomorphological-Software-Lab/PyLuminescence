@@ -1,21 +1,15 @@
-# Contributing to pyluminescence
+# Contributing to PyLuminescence
 
 ## Welcome
 
-Welcome to the pyluminescence Contributing Guide. pyluminescence is a Python port of
+Welcome to the PyLuminescence Contributing Guide. PyLuminescence is a Python port of
 the R package [`Luminescence`](https://github.com/R-Lum/Luminescence) for luminescence
-dating data analysis.
+dating data analysis. See [`README.md`](README.md) for the phase plan and current status.
 
-This package was originally developed inside a fork of the R package's own repository,
-with the R sources kept alongside the Python port as a reference implementation and
-numerical oracle. That coexistence is over: this repository holds only the Python
-package now. See [`README.md`](README.md) for the phase plan and current status.
-
-The R original is kept as a local, unversioned reference copy (an `archive/` directory,
-excluded via `.gitignore`) on the maintainer's machine, plus the upstream repository
-itself at <https://github.com/R-Lum/Luminescence> — used to consult R source when
-porting a new function and to regenerate fixtures with `tools/generate_fixtures.R`. It
-is not part of this repository and not needed to build, test, or use the package.
+The R original lives at <https://github.com/R-Lum/Luminescence>. Read its source when
+porting a function; the reference values for the parity tests come from the installed
+CRAN release via `tools/generate_fixtures.R`. Neither is needed to build or use the
+package.
 Raw test input files derived from the R package are never committed here: they belong
 to the R package and we do not redistribute copies of them. `tools/fetch_test_fixtures.py` pulls them fresh into
 the gitignored cache `tests/fixtures_cache/`: `extdata/` from the installed CRAN
@@ -44,8 +38,8 @@ For every ported function:
 * Names are chosen for Python developers rather than transliterated from R
   (`analyse_SAR.CWOSL()` becomes `analyze_sar_cwosl()`, `RLum.Data.Curve` becomes
   `Curve`). Function boundaries stay 1:1 with R, one Python function per R function,
-  so the oracle comparison needs no mapping layer. The name for a function is fixed
-  when its batch is planned; do not invent a different one while implementing.
+  so the oracle comparison needs no mapping layer. The Python name is fixed in the
+  function's issue; do not invent a different one while implementing.
 * Numeric output is validated against the R implementation, not against what "looks
   right"; see *Porting workflow* below.
 
@@ -76,8 +70,8 @@ At this time, we do not accept:
 * Behavioural changes that diverge from the R implementation without a documented,
   discussed reason (see *The porting principle* and *Porting workflow*).
 * New third-party runtime dependencies without prior agreement.
-* Pull requests targeting the upstream `R-Lum/Luminescence` repository — this project
-  is an independent, standalone port, not affiliated with or merging back upstream.
+* Python changes submitted to the upstream `R-Lum/Luminescence` repository. The port
+  is maintained here; problems in the R package itself belong in its own issue tracker.
 * Swapping the toolchain (uv/hatchling, ruff, basedpyright) for an alternative.
 
 ## Ground rules
@@ -97,8 +91,8 @@ Using AI tools to help write code is allowed and welcomed. It does not change an
 the standards in this guide: judge the code on its merits, not on how it was produced.
 
 * **Numerical and behavioural choices are not the AI's to decide.** When the R source
-  is ambiguous, undocumented, or contains a quirk, go read the R original directly (the
-  local `archive/` checkout or upstream) or consult `PORTING_NOTES.md`. Don't let an AI
+  is ambiguous, undocumented, or contains a quirk, go read the R original directly
+  (`R-Lum/Luminescence`) or consult `PORTING_NOTES.md`. Don't let an AI
   tool invent a "cleaner" Pythonic behaviour that
   diverges from R. Any genuine behavioural choice (not already fixed by the R source)
   needs a discussion first, per *The porting principle*.
@@ -147,8 +141,8 @@ When filing a port/feature request:
 1. Clone the repository and install [uv](https://docs.astral.sh/uv/):
 
    ```bash
-   git clone <this-repository>
-   cd pyluminescence
+   git clone https://github.com/Cologne-Geomorphological-Software-Lab/PyLuminescence.git
+   cd PyLuminescence
    uv sync --group dev
    ```
 
@@ -228,20 +222,33 @@ When filing a port/feature request:
 
 ### Branches
 
-Branches are prefixed by scope, e.g. `dev_<short-description>` for a phase of porting
-work or `chore_<short-description>` for tooling/cleanup. Base them on `main` of this
-repository. Never push or merge directly to `main`.
+Branches follow the pattern `<type>/<short-description>`, as in the other repositories
+of the organisation:
+
+* `feat/read-bin` for ports and new features
+* `bug/lxtx-error-propagation` for bug fixes and divergences from R
+* `test/curve-smoothing-parity` for test-only and parity work
+* `docs/readme-status` for documentation
+* `chore/org-standards` for tooling and cleanup
+
+Base them on `main` of this repository. Never push or merge directly to `main`.
 
 ### Commit messages
 
-Write commit messages in the imperative mood, present tense:
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+`type(scope): description`, in the imperative mood, present tense:
 
 ```
-Port read_BIN2R to io/bin.py (BIN/BINX v3-v8)
+feat(io): port read_BIN2R as read_bin
 
-Add write_bin round-trip test against BINfile_V8.binx
+test(io): add write_bin round-trip test against BINfile_V8.binx
 ```
 
+* Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+  `chore`, `revert`. A port of an R function is a `feat`; a fix for a divergence from
+  R is a `fix`.
+* Scope (optional): the subpackage affected, e.g. `core`, `io`, `fitting`; see
+  *Code organisation*.
 * First line: 50 characters max, no trailing period.
 * Optional body: explain *why*, not *what*. Reference issue numbers (`Closes #XX`).
 * Keep commits granular: one function/module per commit rather than one commit per
@@ -266,7 +273,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run basedpyright
 uv run bandit -r src/luminescence
-uv run vulture src/luminescence tests/python --min-confidence 80
+uv run vulture src/luminescence tests --min-confidence 80
 uv run pip-audit
 ```
 
@@ -284,7 +291,7 @@ uv run pylint --disable=all --enable=duplicate-code src/luminescence
 
 | Package | Scope | R counterpart |
 |---|---|---|
-| `luminescence.core` | Object model: `Record`/`Curve`/`Spectrum`/`ImageData`/`Analysis`/`Results` | `RLum.*` S4 classes |
+| `luminescence.core` | Object model: `Record`, `Curve`, `Result`; planned: `Analysis`, `Spectrum`, `ImageData` | `RLum.*` S4 classes |
 | `luminescence.io` | Instrument file readers/writers (BIN/BINX, XSYG, SPE, PSL, ...) | `read_*.R`, `write_*.R` |
 | `luminescence.analysis` | Analysis protocols (SAR CW-OSL, irradiation handling) | `analyse_*.R` |
 | `luminescence.fitting` | Curve fitting (dose-response, ...) | `fit_*.R` |
@@ -297,7 +304,28 @@ uv run pylint --disable=all --enable=duplicate-code src/luminescence
 ## Releases
 
 There is no fixed release cadence. A first PyPI release of `pyluminescence` is planned
-for Phase 7, once the migration reaches parity across the phases listed in
+for Phase 7, once the port reaches parity across the phases listed in
 `README.md`.
+
+* Add every user-facing change to the `[Unreleased]` section of
+  [CHANGELOG.md](CHANGELOG.md), with the PR or issue number.
+* When tagging a release, rename `[Unreleased]` to the new version and date, and update
+  `version` in `pyproject.toml` and `version` and `date-released` in
+  [CITATION.cff](CITATION.cff).
+
+### Versioning
+
+PyLuminescence follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Versions are tagged `vMAJOR.MINOR.PATCH` on `main`.
+
+* **MAJOR:** a change to the public API that breaks existing code: a removed or renamed
+  function, class, argument or result field, or a changed default that alters results.
+* **MINOR:** new ports and features that leave existing code working.
+* **PATCH:** bug fixes, including fixes for divergences from R, and dependency updates
+  with no new features.
+
+While the version is below 1.0, the API is not yet stable: a MINOR release may break
+existing code. Every such break is listed in [CHANGELOG.md](CHANGELOG.md) under
+*Changed* or *Removed*.
 
 [coco]: CODE_OF_CONDUCT.md
