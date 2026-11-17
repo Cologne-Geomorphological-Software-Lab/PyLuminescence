@@ -1,3 +1,5 @@
+PyLuminescence has been moved to the official R-Lum universe. As a result, this repository is now archived.
+
 # Luminescence <img src="docs/logo/luminescence-python-logo.svg" align="right" height="139" alt="Luminescence for Python logo" />
 
 A Python port of the R package
